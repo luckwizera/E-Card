@@ -24,7 +24,10 @@ before(async () => {
   adminCookie = login.headers['set-cookie'];
 });
 
-after(() => { db.close(); try { fs.unlinkSync(dbFile); } catch {} });
+after(() => {
+  db.close();
+  try { fs.unlinkSync(dbFile); } catch { /* temp database may already be removed */ }
+});
 
 test('health endpoint reports database health', async () => {
   const response = await request(app).get('/api/health');
