@@ -14,14 +14,20 @@ process.env.NODE_ENV = 'test';
 let app;
 let db;
 let adminCookie;
+let studentCookie;
 
 before(async () => {
   ({ app, db } = await import('../server/app.js'));
   const hash = bcrypt.hashSync('AdminPassword123!', 10);
+  const studentHash = bcrypt.hashSync('StudentPassword123!', 10);
   db.prepare('INSERT INTO users(name,email,password_hash,role) VALUES(?,?,?,?)').run('Test Admin', 'admin@test.local', hash, 'admin');
+  db.prepare('INSERT INTO users(name,email,password_hash,role,student_id) VALUES(?,?,?,?,?)').run('Test Student', 'student@test.local', studentHash, 'student', 'ST-1024');
   const login = await request(app).post('/api/auth/login').send({ email: 'admin@test.local', password: 'AdminPassword123!' });
+  const studentLogin = await request(app).post('/api/auth/login').send({ email: 'student@test.local', password: 'StudentPassword123!' });
   assert.equal(login.status, 200);
+  assert.equal(studentLogin.status, 200);
   adminCookie = login.headers['set-cookie'];
+  studentCookie = studentLogin.headers['set-cookie'];
 });
 
 after(() => {
@@ -46,6 +52,12 @@ test('students endpoint requires authentication', async () => {
   assert.equal(response.status, 401);
 });
 
+test('student cannot access administration student list', async () => {
+  const response = await request(app).get('/api/students').set('Cookie', studentCookie);
+  assert.equal(response.status, 403);
+  assert.equal(response.body.code, 'ADMIN_REQUIRED');
+});
+
 test('admin can list students', async () => {
   const response = await request(app).get('/api/students').set('Cookie', adminCookie);
   assert.equal(response.status, 200);
@@ -67,6 +79,12 @@ test('sanction never pushes marks below zero', async () => {
   assert.equal(response.body.marks, 0);
 });
 
+test('invalid conduct payload is rejected before persistence', async () => {
+  const response = await request(app).post('/api/events').set('Cookie', adminCookie).send({ studentId: 'ST-1024', type: 'Sanction', amount: 99, reason: '' });
+  assert.equal(response.status, 400);
+  assert.equal(response.body.code, 'VALIDATION_ERROR');
+});
+
 test('conduct status thresholds are enforced', async () => {
   const { calculateConductStatus } = await import('../server/routes/events.js');
   assert.equal(calculateConductStatus(0), 'Good');
@@ -74,6 +92,12 @@ test('conduct status thresholds are enforced', async () => {
   assert.equal(calculateConductStatus(12), 'Watch');
   assert.equal(calculateConductStatus(17), 'Watch');
   assert.equal(calculateConductStatus(18), 'Review');
+});
+
+test('student sees only their own permission cards', async () => {
+  const response = await request(app).get('/api/permissions').set('Cookie', studentCookie);
+  assert.equal(response.status, 200);
+  assert.equal(response.body.every((card) => card.student_id === 'ST-1024'), true);
 });
 
 test('permission card can be created and approved', async () => {
