@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: E-Card API
+  version: 1.1.0
+  description: School conduct, permission card, reporting, and parent notification API.
+servers:
+  - url: /api
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200': { description: Healthy }
+        '503': { description: Database unavailable }
+  /auth/login:
+    post:
+      summary: Authenticate a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Login' }
+      responses:
+        '200': { description: Authenticated }
+        '400': { description: Invalid input }
+        '401': { description: Invalid credentials }
+  /auth/logout:
+    post:
+      summary: End the current session
+      responses: { '200': { description: Signed out } }
+  /students:
+    get:
+      summary: List students
+      security: [{ cookieAuth: [] }]
+      responses: { '200': { description: Student list }, '401': { description: Unauthorized }, '403': { description: Forbidden } }
+  /students/{id}/history:
+    get:
+      summary: Get authorized student conduct history
+      security: [{ cookieAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Conduct events }, '403': { description: Forbidden } }
+  /events:
+    post:
+      summary: Record appreciation or sanction
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Event' }
+      responses: { '200': { description: Updated balance }, '400': { description: Validation error }, '403': { description: Forbidden } }
+  /permissions:
+    get:
+      summary: List authorized permission cards
+      security: [{ cookieAuth: [] }]
+      responses: { '200': { description: Permission cards } }
+    post:
+      summary: Create a permission card
+      security: [{ cookieAuth: [] }]
+      responses: { '201': { description: Created }, '400': { description: Validation error } }
+  /permissions/{code}:
+    patch:
+      summary: Approve or reject a permission card
+      security: [{ cookieAuth: [] }]
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Updated card }, '404': { description: Not found } }
+  /reports/{period}.pdf:
+    get:
+      summary: Generate a conduct PDF report
+      security: [{ cookieAuth: [] }]
+      parameters: [{ name: period, in: path, required: true, schema: { type: string, enum: [monthly, termly, annual] } }]
+      responses: { '200': { description: PDF report, content: { application/pdf: {} } } }
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: ecard
+  schemas:
+    Login:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+    Event:
+      type: object
+      required: [studentId, type, amount, reason]
+      properties:
+        studentId: { type: string }
+        type: { type: string, enum: [Appreciation, Sanction] }
+        amount: { type: integer, minimum: 1, maximum: 20 }
+        reason: { type: string, minLength: 2, maxLength: 500 }
+        notifyParent: { type: boolean }
