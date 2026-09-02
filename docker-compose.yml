@@ -1,0 +1,15 @@
+services:
+  ecard:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DB_FILE: /data/ecard.sqlite
+    volumes:
+      - ecard-data:/data
+    restart: unless-stopped
+
+volumes:
+  ecard-data:
