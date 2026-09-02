@@ -10,7 +10,7 @@ E-Card is a school operations application for recording student appreciation and
 - Parent-notification integration point via SMTP
 - Digital permission cards with approval/rejection workflow
 - Monthly, termly, and annual PDF reports
-- Responsive modern frontend
+- Responsive modern frontend with production login overlay
 - Persistent SQLite backend
 - Role-based access control and HTTP-only authentication cookie
 - Zod request validation
@@ -21,6 +21,7 @@ E-Card is a school operations application for recording student appreciation and
 
 ```text
 Browser
+  ├── Login
   ├── Administration panel
   └── Student portal
           │
@@ -59,21 +60,29 @@ cp .env.example .env
 
 Set a random `JWT_SECRET` of at least 32 characters before starting the server.
 
-## Development
+## Create the first administrator
 
 ```bash
-npm run dev
+npm run create-admin
 ```
 
-The static frontend can also be served by the production Express entrypoint.
+The command prompts for the administrator's name, email, and password. Credentials are hashed with bcrypt and are not written to source control.
 
-## Production server
+## Run
 
 ```bash
 npm start
 ```
 
-The default port is `3000`. A reverse proxy should provide HTTPS in production.
+The default port is `3000`. Open the application through the Express server, not directly as a file, when using production authentication.
+
+## Development UI
+
+```bash
+npm run dev
+```
+
+The existing static frontend remains available for UI exploration, while the Express server provides the production authentication and API layer.
 
 ## Quality checks
 
@@ -93,7 +102,7 @@ GitHub Actions runs these checks on pushes and pull requests.
 | `PORT` | HTTP server port |
 | `JWT_SECRET` | Required signing secret; minimum 32 characters |
 | `DB_FILE` | SQLite database file path |
-| `APP_ORIGIN` | Allowed frontend origin for CORS |
+| `APP_ORIGIN` | Required in production and used as the CORS origin |
 | `SMTP_HOST` | SMTP server hostname |
 | `SMTP_PORT` | SMTP server port |
 | `SMTP_SECURE` | Whether SMTP uses TLS directly |
@@ -102,6 +111,8 @@ GitHub Actions runs these checks on pushes and pull requests.
 | `SMTP_FROM` | Verified sender address |
 
 ## API overview
+
+See [`docs/API.md`](docs/API.md) for request contracts and authorization rules.
 
 - `POST /api/auth/login` — sign in
 - `POST /api/auth/logout` — sign out
@@ -118,12 +129,16 @@ GitHub Actions runs these checks on pushes and pull requests.
 
 ## Demo data
 
-The backend seeds sample students only when the database is empty. Real deployments should provision real accounts through a secure administrative process rather than committing credentials to source control.
+The backend seeds sample students only when the database is empty. The records use synthetic parent contact information. Real school data should be provisioned through approved operational processes.
 
 ## Security and privacy
 
-Student records are sensitive. Production deployments should use HTTPS, strong secrets stored outside source control, least-privilege access, database backups, retention/deletion policies, audit monitoring, rate limiting at the edge, and school-approved privacy procedures. Do not put real parent contact information into demo fixtures.
+Student records are sensitive. Production deployments should use HTTPS, strong secrets stored outside source control, least-privilege access, database backups, retention/deletion policies, audit monitoring, rate limiting at the edge, and school-approved privacy procedures.
 
 ## Docker
 
-A production-oriented Docker image and Compose example are included. Persist the `/data` volume and provide secrets through the deployment environment.
+```bash
+docker compose up --build
+```
+
+Persist the `ecard-data` volume. Supply `.env` through the deployment environment and do not commit it.
