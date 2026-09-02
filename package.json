@@ -8,8 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.js",
+    "create-admin": "node scripts/create-admin.js",
     "test": "node --test",
-    "lint": "eslint server test",
+    "lint": "eslint server test scripts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
