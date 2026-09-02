@@ -18,15 +18,21 @@ app.disable('x-powered-by');
 app.use(cors({ origin: process.env.APP_ORIGIN || true, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
-app.get('/api/health', (req, res) => { const healthy = checkDatabase(); res.status(healthy ? 200 : 503).json({ status: healthy ? 'ok' : 'degraded', database: healthy ? 'ok' : 'error' }); });
+app.get('/api/health', (_req, res) => {
+  const healthy = checkDatabase();
+  res.status(healthy ? 200 : 503).json({ status: healthy ? 'ok' : 'degraded', database: healthy ? 'ok' : 'error' });
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api', (err, req, res, next) => { logger.error('Unhandled API error', { error: err.message, route: req.path }); res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }); });
+app.use('/api', (err, req, res, _next) => {
+  logger.error('Unhandled API error', { error: err.message, route: req.path });
+  res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_ERROR' });
+});
 const root = path.dirname(fileURLToPath(import.meta.url));
 app.use(express.static(path.join(root, '..')));
-app.get('/*splat', (req, res) => res.sendFile(path.join(root, '..', 'index.html')));
+app.get('/*splat', (_req, res) => res.sendFile(path.join(root, '..', 'index.html')));
 export { app, db };
