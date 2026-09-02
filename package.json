@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "start": "node server/index.js",
     "test": "node --test",
-    "lint": "eslint .",
+    "lint": "eslint server test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
